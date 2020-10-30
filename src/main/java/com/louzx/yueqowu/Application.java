@@ -7,10 +7,14 @@ import cn.hutool.http.Method;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
+import com.itactic.core.utils.DateFormatUtils;
 import com.louzx.yueqowu.thread.SwipeThread;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.UnsupportedEncodingException;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -22,9 +26,23 @@ import java.util.concurrent.Executors;
 @SpringBootApplication
 public class Application {
     // change : 2c9194587219d0ae017219dc98f309fb ----  2c9194597219d0ad017219dc90b703f9 ---- 2c9194587219d0ae017219dc909c03e0
-    private static String goodsInfoId = "2c91c7f47407d82f01740b96633c03e3";
+//    private static String goodsInfoId = "2c91c7f47407d82f01740b96633c03e3";
 
+    private static String goodsInfoId = "2c9194587219d0ae017219dc909c03e0";
     static ExecutorService executorService = Executors.newCachedThreadPool();
+    public static Map<Integer, String> areaMap = new HashMap<>();
+    static {
+        try {
+            BufferedReader br = new BufferedReader(new InputStreamReader(Application.class.getClassLoader().getResourceAsStream("area.txt"), "GBK"));
+            String line = "";
+            while ((line = br.readLine()) != null) {
+                line = line.replace(" ", "");
+                areaMap.put(Integer.valueOf(line.substring(0, 6)), line.substring(7, line.length() - 1 ));
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
 
 //
 //    private static HttpRequest request;
@@ -151,9 +169,10 @@ public class Application {
 
         SwipeThread swipeThread = new SwipeThread();
         swipeThread.setGoodInfoId(goodsInfoId);
-        swipeThread.setUsername("18268108246");
-        swipeThread.setPassword("897425");
-        swipeThread.setGoodCount(2);
+        swipeThread.setUsername("13958403168");
+        swipeThread.setPassport("E66204255");
+        swipeThread.setPassword("123456");
+        swipeThread.setGoodCount(1);
         executorService.execute(swipeThread);
         executorService.shutdown();
     }

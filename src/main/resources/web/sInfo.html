@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>提交</title>
+</head>
+<body>
+    <input type="hidden" value="${goodsId}" id="goodsId">
+    用户名：<input type="text" id="username" />
+    <br>
+    密码：<input type="text" id="password">
+    <br>
+    <input type="button" id="submitSInfo" value="提交">
+</body>
+
+    <script>
+        $(document).ready(function () {
+            layui.use(['sInfo'], function () {
+                layui.sInfo
+            })
+        });
+
+    </script>
+</html>

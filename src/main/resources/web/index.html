@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>刷</title>
+    <meta name="renderer" content="webkit">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <#include "/frame/header.html"/>
+</head>
+<body>
+    <input id="search" type="text" />
+    <input id="submit" type="button" value="搜索">
+
+    <table id="mainTable" class="layui-table" lay-filter="mainTable"></table>
+
+    <script type="text/html" id="operation">
+        <a class="layui-table-link" href="javascript:void(0);" lay-event="list">列表</a>
+    </script>
+</body>
+
+<script>
+    $(document).ready(function () {
+        layui.use(['index'], function () {
+            layui.index.init();
+        });
+    })
+</script>

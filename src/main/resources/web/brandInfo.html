@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <meta name="renderer" content="webkit">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <#include "/frame/header.html"/>
+
+</head>
+<br>
+    <input type="hidden" value="${brandId}" id="brandId">
+    库存： <input type="button" id="kcd" value="库存↑" />
+            <input type="button" id="kcu" value="库存↓">
+    </br>
+    <table id="brandInfo" lay-filter="brandInfo"></table>
+    <script type="text/html" id="imgTpl">
+        <img src="{{d.goodsImg}}"  />
+    </script>
+s
+<script type="text/html" id="operation">
+    <a class="layui-table-link" href="javascript:void(0);" lay-event="s">刷</a>
+</script>
+</body>
+
+    <script>
+        $(document).ready(function () {
+           layui.use(['brandInfo'], function () {
+               layui.brandInfo.init();
+           }) ;
+        });
+    </script>
+</html>

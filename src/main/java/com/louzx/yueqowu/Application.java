@@ -31,10 +31,10 @@ public class Application {
     public static Map<Integer, String> areaMap = new HashMap<>();
     static {
         try {
-            BufferedReader br = new BufferedReader(new InputStreamReader(Application.class.getClassLoader().getResourceAsStream("area.txt"), "GBK"));
+            BufferedReader br = new BufferedReader(new InputStreamReader(Application.class.getClassLoader().getResourceAsStream("area.txt"), "UTF-8"));
             String line = "";
             while ((line = br.readLine()) != null) {
-                line = line.replace(" ", "");
+                line = line.replace(" ", "").replace("\t", "");
                 areaMap.put(Integer.valueOf(line.substring(0, 6)), line.substring(7, line.length() - 1 ));
             }
         } catch (IOException e) {

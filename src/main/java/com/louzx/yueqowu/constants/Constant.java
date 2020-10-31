@@ -27,6 +27,8 @@ public interface Constant {
 
         public static final String OVER_SHOPPINGCAR = "K-050215";
 
+        public static final String FAIL ="K-000001";
+
     }
 
     public enum  URLS {
@@ -36,7 +38,8 @@ public interface Constant {
         COMMIT(Method.POST, "https://mbff.yuegowu.com/trade/commit"),
         SPU(Method.GET, "https://mbff.yuegowu.com/goods/spu/%s"),
         PURCHASES(Method.POST, "https://mbff.yuegowu.com/site/purchases"),
-        ADDRESS(Method.GET, "https://mbff.yuegowu.com/customer/addressList");
+        ADDRESS(Method.GET, "https://mbff.yuegowu.com/customer/addressList"),
+        LOGINCONFIRM(Method.GET, "https://mbff.yuegowu.com/login");
 
         public Method method;
         public String URL;

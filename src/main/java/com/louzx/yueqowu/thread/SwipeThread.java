@@ -1,7 +1,10 @@
 package com.louzx.yueqowu.thread;
 
+import cn.hutool.http.Method;
+import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
+import com.alibaba.fastjson.serializer.SerializerFeature;
 import com.itactic.core.utils.EnAndDe;
 import com.louzx.yueqowu.Application;
 import com.louzx.yueqowu.constants.Constant;
@@ -9,6 +12,7 @@ import com.louzx.yueqowu.utils.HttpRequestUtils;
 import lombok.Setter;
 import org.apache.commons.lang3.StringUtils;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
@@ -64,7 +68,9 @@ public class SwipeThread implements Runnable{
     /** 间隔时间 默认2s*/
     private Long intervals = 2000L;
 
-    private Map<String, Object> params = new HashMap<>();
+    private Map<String, Object> params = new LinkedHashMap<>();
+
+    private Double tradePrice = 0D;
 
     @Override
     public void run() {
@@ -75,6 +81,10 @@ public class SwipeThread implements Runnable{
             passport = "EE0698783";
         }
         getToken();
+        if (header.size() == 0) {
+            System.out.println("登录失败");
+            return;
+        }
         getDefaultAddress();
         if (StringUtils.isBlank(customerAddress)) {
             return;
@@ -88,32 +98,31 @@ public class SwipeThread implements Runnable{
     }
 
     private void commit() {
-        params.clear();
+        params = new LinkedHashMap<>();
         params.put("consigneeId", customerId);
         params.put("provinceName", this.provinceName);
-        params.put("cityName", this.cityName);
-        params.put("areaName", this.areaName);
-        params.put("consigneeAddress", this.customerAddress);
+        params.put("cityName", cityName);
+        params.put("areaName", areaName);
+        params.put("consigneeAddress", customerAddress);
         params.put("consigneeUpdateTime", null);
         JSONArray ja = new JSONArray();
-        JSONObject jo = new JSONObject();
-        jo.put("storeId", "123456861");
-        jo.put("payType", 0);
-        jo.put("invoiceType", -1);
-        jo.put("generalInvoice", new JSONObject());
-        jo.put("specialInvoice", new JSONObject());
-        jo.put("specialInvoiceAddress", false);
-        jo.put("invoiceAddressId", customerId);
-        jo.put("invoiceAddressDetail", this.customerAddress);
-
-        jo.put("invoiceAddressUpdateTime", null);
-        jo.put("invoiceProjectId", "");
-        jo.put("invoiceProjectName", "");
-        jo.put("invoiceProjectUpdateTime", null);
-        jo.put("buyerRemark", "");
-        jo.put("encloses", "");
-        jo.put("deliverWay", "1");
-        ja.add(jo);
+        Map<String, Object> joParams = new LinkedHashMap<>();
+        joParams.put("storeId", 123456861);
+        joParams.put("payType", 0);
+        joParams.put("invoiceType", -1);
+        joParams.put("generalInvoice", new JSONObject());
+        joParams.put("specialInvoice", new JSONObject());
+        joParams.put("specialInvoiceAddress", false);
+        joParams.put("invoiceAddressId", customerId);
+        joParams.put("invoiceAddressDetail", customerAddress);
+        joParams.put("invoiceAddressUpdateTime", null);
+        joParams.put("invoiceProjectId", "");
+        joParams.put("invoiceProjectName", "");
+        joParams.put("invoiceProjectUpdateTime", null);
+        joParams.put("buyerRemark", "");
+        joParams.put("encloses", "");
+        joParams.put("deliverWay", "1");
+        ja.add(joParams);
         params.put("storeCommitInfoList", ja);
         params.put("commonCodeId", null);
         params.put("orderSource", "LITTLEPROGRAM");
@@ -122,7 +131,7 @@ public class SwipeThread implements Runnable{
         params.put("flightNumber", "CA216");
         DateTimeFormatter df = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
         Calendar calendar = Calendar.getInstance();
-        calendar.set(Calendar.DAY_OF_YEAR, calendar.get(Calendar.DAY_OF_YEAR) + 3);
+        calendar.set(Calendar.DAY_OF_YEAR, calendar.get(Calendar.DAY_OF_YEAR) + 1);
         LocalDateTime localDateTime = calendar.getTime().toInstant().atZone(ZoneId.of("Asia/Shanghai")).toLocalDateTime();
         params.put("arriveTime", localDateTime.format(df));
         params.put("seatNumber", "33A");
@@ -159,9 +168,8 @@ public class SwipeThread implements Runnable{
             params.put("tradeMarketingList", new ArrayList<>());
         }
         params.put("forceConfirm", false);
-        params.put("tradePrice", 0);
+        params.put("tradePrice", tradePrice);
         params.put("returnGoodsFlag", 0);
-
         System.out.println(HttpRequestUtils.doHttp(Constant.URLS.CONFIRM.URL, header, new JSONObject(params), Constant.URLS.CONFIRM.method, true));
     }
 
@@ -176,12 +184,20 @@ public class SwipeThread implements Runnable{
             System.out.println(++times + "次结果" + pruchaseJO);
             if (null != pruchaseJO && Constant.RequestStatus.SUCCESS.equals(pruchaseJO.getString("code"))) {
                 break;
-            } else if (Constant.RequestStatus.OVER_SHOPPINGCAR.equals(pruchaseJO.getString("code"))){
+            } else if (null != pruchaseJO && Constant.RequestStatus.OVER_SHOPPINGCAR.equals(pruchaseJO.getString("code"))){
                 /** 清空购物车代码 */
-
-
-
-
+                JSONObject jo = new JSONObject();
+                jo.put("goodsInfoIds", new ArrayList<>());
+                JSONObject res = HttpRequestUtils.doHttp(Constant.URLS.PURCHASES.URL, header, jo, Constant.URLS.PURCHASES.method, true);
+                List<String> delGoodsInfos = new ArrayList<>();
+                if (null != res && Constant.RequestStatus.SUCCESS.equals(res.getString("code"))) {
+                    JSONArray ja = res.getJSONObject("context").getJSONArray("goodsInfos");
+                    for (int i = 0; i < ja.size(); i++) {
+                        delGoodsInfos.add(ja.getJSONObject(i).getString("goodsInfoId"));
+                    }
+                }
+                jo.put("goodsInfoIds", delGoodsInfos);
+                HttpRequestUtils.doHttp(Constant.URLS.PRUCHASE.URL, header, jo, Method.DELETE, true);
                 continue;
             } else {
                 try { Thread.sleep(intervals); } catch (InterruptedException e) { }
@@ -196,6 +212,7 @@ public class SwipeThread implements Runnable{
             }});
             JSONObject purchasesJO = HttpRequestUtils.doHttp(Constant.URLS.PURCHASES.URL, header, PURCHASESJO, Constant.URLS.PURCHASES.method, true);
             if (null != purchasesJO && Constant.RequestStatus.SUCCESS.equals(purchasesJO.getString("code"))) {
+                tradePrice = purchasesJO.getJSONObject("context").getDouble("tradePrice");
                 JSONArray goodsInfos = purchasesJO.getJSONObject("context").getJSONObject("goodsMarketingMap").getJSONArray(this.goodInfoId);
                 if (null != goodsInfos && goodsInfos.size() > 0) {
                     JSONArray tmp = goodsInfos.getJSONObject(0).getJSONArray("fullDiscountLevelList");
@@ -268,17 +285,16 @@ public class SwipeThread implements Runnable{
                         this.provinceId = tmpJO.getInteger("provinceId");
                         this.cityId = tmpJO.getInteger("cityId");
                         this.areaId = tmpJO.getInteger("areaId");
-                        this.customerId = tmpJO.getString("customerId");
-                        this.provinceName = Application.areaMap.get(provinceId);
-                        this.cityName = Application.areaMap.get(cityId);
-                        this.areaName = Application.areaMap.get(areaId);
+                        this.customerId = tmpJO.getString("deliveryAddressId");
+                        provinceName = Application.areaMap.get(provinceId);
+                        cityName = Application.areaMap.get(cityId);
+                        areaName = Application.areaMap.get(areaId);
                         StringBuffer sb = new StringBuffer(provinceName);
                         if (!cityId.equals(provinceId)) {
                             sb.append(cityName);
                         }
-                        sb.append(cityName);
-                        sb.append(Application.areaMap.get(areaId));
-                        this.customerAddress = sb.toString() + tmpJO.getString("customerAddress");
+                        sb.append(areaName);
+                        this.customerAddress = sb.toString() + tmpJO.getString("deliveryAddress");
                         getAddress = true;
                         break;
                     }
@@ -322,6 +338,12 @@ public class SwipeThread implements Runnable{
             getToken();
         } else if (Constant.RequestStatus.SUCCESS.equals(resJO.getString("code"))) {
             header.put("Authorization", "Bearer " + resJO.getJSONObject("context").getString("token"));
+            JSONObject confirmLogin = HttpRequestUtils.doHttp(Constant.URLS.LOGINCONFIRM.URL, header, null, Constant.URLS.LOGINCONFIRM.method, true);
+            if (null != confirmLogin && Constant.RequestStatus.SUCCESS.equals(confirmLogin.getString("code"))) {
+                header.put("Authorization", "Bearer " + confirmLogin.getString("context"));
+            } else {
+                header.clear();
+            }
         }
     }
 }

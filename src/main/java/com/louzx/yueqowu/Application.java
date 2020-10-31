@@ -7,6 +7,7 @@ import cn.hutool.http.Method;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
+import com.alibaba.fastjson.serializer.SerializerFeature;
 import com.itactic.core.utils.DateFormatUtils;
 import com.louzx.yueqowu.thread.SwipeThread;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -35,7 +36,7 @@ public class Application {
             String line = "";
             while ((line = br.readLine()) != null) {
                 line = line.replace(" ", "").replace("\t", "");
-                areaMap.put(Integer.valueOf(line.substring(0, 6)), line.substring(7, line.length() - 1 ));
+                areaMap.put(Integer.valueOf(line.substring(0, 6)), line.substring(6));
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -44,14 +45,14 @@ public class Application {
 
 
     public static void main(String[] args) throws InterruptedException, IOException {
-
-        SwipeThread swipeThread = new SwipeThread();
-        swipeThread.setGoodInfoId(goodsInfoId);
-        swipeThread.setUsername("13958403168");
-        swipeThread.setPassport("E66204255");
-        swipeThread.setPassword("123456");
-        swipeThread.setGoodCount(1);
-        executorService.execute(swipeThread);
+        SwipeThread louzx = new SwipeThread();
+//        louzx.setGoodInfoId("2c91c7f47407d82f01740b96633c03e3");
+        louzx.setGoodInfoId("2c9194597219d0ad017219dc891f0018");
+        louzx.setUsername("13958403168");
+        louzx.setPassport("E66204255");
+        louzx.setPassword("lzx1998");
+        louzx.setGoodCount(2);
+        executorService.execute(louzx);
         executorService.shutdown();
     }
 }

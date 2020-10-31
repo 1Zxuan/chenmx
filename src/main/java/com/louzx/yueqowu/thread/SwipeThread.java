@@ -58,6 +58,13 @@ public class SwipeThread implements Runnable{
 
 
     private String customerAddress;
+    private Integer marketingLevelId = -1;
+    private Integer marketingId = -1;
+
+    /** 间隔时间 默认2s*/
+    private Long intervals = 2000L;
+
+    private Map<String, Object> params = new HashMap<>();
 
     @Override
     public void run() {
@@ -68,6 +75,145 @@ public class SwipeThread implements Runnable{
             passport = "EE0698783";
         }
         getToken();
+        getDefaultAddress();
+        if (StringUtils.isBlank(customerAddress)) {
+            return;
+        }
+        spu();
+//        while (true) {
+            pruchase();
+            confirm();
+            commit();
+//        }
+    }
+
+    private void commit() {
+        params.clear();
+        params.put("consigneeId", customerId);
+        params.put("provinceName", this.provinceName);
+        params.put("cityName", this.cityName);
+        params.put("areaName", this.areaName);
+        params.put("consigneeAddress", this.customerAddress);
+        params.put("consigneeUpdateTime", null);
+        JSONArray ja = new JSONArray();
+        JSONObject jo = new JSONObject();
+        jo.put("storeId", "123456861");
+        jo.put("payType", 0);
+        jo.put("invoiceType", -1);
+        jo.put("generalInvoice", new JSONObject());
+        jo.put("specialInvoice", new JSONObject());
+        jo.put("specialInvoiceAddress", false);
+        jo.put("invoiceAddressId", customerId);
+        jo.put("invoiceAddressDetail", this.customerAddress);
+
+        jo.put("invoiceAddressUpdateTime", null);
+        jo.put("invoiceProjectId", "");
+        jo.put("invoiceProjectName", "");
+        jo.put("invoiceProjectUpdateTime", null);
+        jo.put("buyerRemark", "");
+        jo.put("encloses", "");
+        jo.put("deliverWay", "1");
+        ja.add(jo);
+        params.put("storeCommitInfoList", ja);
+        params.put("commonCodeId", null);
+        params.put("orderSource", "LITTLEPROGRAM");
+        params.put("forceCommit", false);
+        params.put("shareUserId", null);
+        params.put("flightNumber", "CA216");
+        DateTimeFormatter df = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+        Calendar calendar = Calendar.getInstance();
+        calendar.set(Calendar.DAY_OF_YEAR, calendar.get(Calendar.DAY_OF_YEAR) + 3);
+        LocalDateTime localDateTime = calendar.getTime().toInstant().atZone(ZoneId.of("Asia/Shanghai")).toLocalDateTime();
+        params.put("arriveTime", localDateTime.format(df));
+        params.put("seatNumber", "33A");
+        params.put("certificateType", 0);
+        params.put("passport", passport);
+        params.put("hongkongAndMacaoPass", "");
+        params.put("taiwanPass", "");
+        params.put("taiwanPassName", "");
+        JSONObject res = HttpRequestUtils.doHttp(Constant.URLS.COMMIT.URL, header, new JSONObject(params), Constant.URLS.COMMIT.method, true);
+        System.out.println(res);
+    }
+
+    /** confirm */
+    private void confirm(){
+        /** 确认订单并提交订单 */
+        JSONObject confirmJO = new JSONObject();
+        confirmJO.put("skuId", goodInfoId);
+        confirmJO.put("num", goodCount);
+        List<JSONObject> tr = new ArrayList<>();
+        tr.add(confirmJO);
+        params.put("tradeItems", tr);
+        if (marketingLevelId != -1 && marketingId != -1) {
+            List<JSONObject> tmp = new ArrayList<>();
+            JSONObject tmpJO = new JSONObject();
+            tmpJO.put("marketingId", marketingId);
+            tmpJO.put("skuIds", new ArrayList<String>() {{
+                this.add(goodInfoId);
+            }});
+            tmpJO.put("marketingLevelId", marketingLevelId);
+            tmpJO.put("giftSkuIds", new ArrayList<>());
+            tmp.add(tmpJO);
+            params.put("tradeMarketingList", tmp);
+        } else {
+            params.put("tradeMarketingList", new ArrayList<>());
+        }
+        params.put("forceConfirm", false);
+        params.put("tradePrice", 0);
+        params.put("returnGoodsFlag", 0);
+
+        System.out.println(HttpRequestUtils.doHttp(Constant.URLS.CONFIRM.URL, header, new JSONObject(params), Constant.URLS.CONFIRM.method, true));
+    }
+
+    /** 加入购物车 */
+    private void pruchase(){
+        while (true) {
+            Constant.URLS url = Constant.URLS.PRUCHASE;
+            JSONObject body = new JSONObject();
+            body.put("goodsInfoId", goodInfoId);
+            body.put("goodsNum", goodCount);
+            JSONObject pruchaseJO = HttpRequestUtils.doHttp(url.URL, header, body, url.method, true);
+            System.out.println(++times + "次结果" + pruchaseJO);
+            if (null != pruchaseJO && Constant.RequestStatus.SUCCESS.equals(pruchaseJO.getString("code"))) {
+                break;
+            } else if (Constant.RequestStatus.OVER_SHOPPINGCAR.equals(pruchaseJO.getString("code"))){
+                /** 清空购物车代码 */
+
+
+
+
+                continue;
+            } else {
+                try { Thread.sleep(intervals); } catch (InterruptedException e) { }
+                continue;
+            }
+        }
+        /** 获取优惠信息 */
+        if (marketingId == -1 || marketingLevelId == -1) {
+            JSONObject PURCHASESJO = new JSONObject();
+            PURCHASESJO.put("goodsInfoIds", new ArrayList<String>() {{
+                this.add(goodInfoId);
+            }});
+            JSONObject purchasesJO = HttpRequestUtils.doHttp(Constant.URLS.PURCHASES.URL, header, PURCHASESJO, Constant.URLS.PURCHASES.method, true);
+            if (null != purchasesJO && Constant.RequestStatus.SUCCESS.equals(purchasesJO.getString("code"))) {
+                JSONArray goodsInfos = purchasesJO.getJSONObject("context").getJSONObject("goodsMarketingMap").getJSONArray(this.goodInfoId);
+                if (null != goodsInfos && goodsInfos.size() > 0) {
+                    JSONArray tmp = goodsInfos.getJSONObject(0).getJSONArray("fullDiscountLevelList");
+                    for (int i = 0; i < tmp.size(); i++) {
+                        Integer fullCount = tmp.getJSONObject(i).getInteger("fullCount");
+                        if (goodCount.equals(fullCount)) {
+                            marketingLevelId = tmp.getJSONObject(i).getInteger("discountLevelId");
+                            marketingId = tmp.getJSONObject(i).getInteger("marketingId");
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    /** 判断商品状态 */
+    private void spu() {
         while (true) {
             try {
                 Thread.sleep(500L);
@@ -106,133 +252,61 @@ public class SwipeThread implements Runnable{
                 break;
             }
         }
-        Integer marketingLevelId = -1;
-        Integer marketingId = -1;
-        while (true) {
-            while (true) {
-                Constant.URLS url = Constant.URLS.PRUCHASE;
-                JSONObject body = new JSONObject();
-                body.put("goodsInfoId", goodInfoId);
-                body.put("goodsNum", goodCount);
-                JSONObject pruchaseJO = HttpRequestUtils.doHttp(url.URL, header, body, url.method, true);
-                System.out.println(times++ + "次结果" + pruchaseJO);
-                if (null != pruchaseJO && Constant.RequestStatus.SUCCESS.equals(pruchaseJO.getString("code"))) {
-                    break;
-                } else {
-                    try {
-                        Thread.sleep(500L);
-                    } catch (InterruptedException e) {
-                    }
-                    continue;
-                }
-            }
+    }
 
-            /** 获取优惠信息 */
-            if (marketingId == -1 || marketingLevelId == -1) {
-                JSONObject PURCHASESJO = new JSONObject();
-                PURCHASESJO.put("goodsInfoIds", new ArrayList<String>() {{
-                    this.add(goodInfoId);
-                }});
-                JSONObject purchasesJO = HttpRequestUtils.doHttp(Constant.URLS.PURCHASES.URL, header, PURCHASESJO, Constant.URLS.PURCHASES.method, true);
-                if (null != purchasesJO && Constant.RequestStatus.SUCCESS.equals(purchasesJO.getString("code"))) {
-                    JSONArray goodsInfos = purchasesJO.getJSONObject("context").getJSONObject("goodsMarketingMap").getJSONArray(this.goodInfoId);
-                    if (null != goodsInfos && goodsInfos.size() > 0) {
-                        JSONArray tmp = goodsInfos.getJSONObject(0).getJSONArray("fullDiscountLevelList");
-                        for (int i = 0; i < tmp.size(); i++) {
-                            Integer fullCount = tmp.getJSONObject(i).getInteger("fullCount");
-                            if (goodCount.equals(fullCount)) {
-                                marketingLevelId = tmp.getJSONObject(i).getInteger("discountLevelId");
-                                marketingId = tmp.getJSONObject(i).getInteger("marketingId");
-                                break;
-                            }
+    /** 获取地址 */
+    private void getDefaultAddress() {
+        JSONObject jo = HttpRequestUtils.doHttp(Constant.URLS.ADDRESS.URL, header, null, Constant.URLS.ADDRESS.method, true);
+        if (null != jo && Constant.RequestStatus.SUCCESS.equals(jo.getString("code"))) {
+            JSONArray ja = jo.getJSONArray("context");
+            if (null != ja && ja.size() > 0) {
+                boolean getAddress = false;
+                for (int i = 0; i < ja.size(); i++) {
+                    JSONObject tmpJO = ja.getJSONObject(i);
+                    Integer isDefaltAddress = tmpJO.getInteger("isDefaltAddress");
+                    if (1 == isDefaltAddress) {
+                        this.provinceId = tmpJO.getInteger("provinceId");
+                        this.cityId = tmpJO.getInteger("cityId");
+                        this.areaId = tmpJO.getInteger("areaId");
+                        this.customerId = tmpJO.getString("customerId");
+                        this.provinceName = Application.areaMap.get(provinceId);
+                        this.cityName = Application.areaMap.get(cityId);
+                        this.areaName = Application.areaMap.get(areaId);
+                        StringBuffer sb = new StringBuffer(provinceName);
+                        if (!cityId.equals(provinceId)) {
+                            sb.append(cityName);
                         }
+                        sb.append(cityName);
+                        sb.append(Application.areaMap.get(areaId));
+                        this.customerAddress = sb.toString() + tmpJO.getString("customerAddress");
+                        getAddress = true;
+                        break;
                     }
                 }
+                if (!getAddress) {
+                    JSONObject tmpJO = ja.getJSONObject(0);
+                    this.provinceId = tmpJO.getInteger("provinceId");
+                    this.cityId = tmpJO.getInteger("cityId");
+                    this.areaId = tmpJO.getInteger("areaId");
+                    this.customerId = tmpJO.getString("customerId");
+                    this.provinceName = Application.areaMap.get(provinceId);
+                    this.cityName = Application.areaMap.get(cityId);
+                    this.areaName = Application.areaMap.get(areaId);
+                    StringBuffer sb = new StringBuffer(provinceName);
+                    if (!cityId.equals(provinceId)) {
+                        sb.append(cityName);
+                    }
+                    sb.append(cityName);
+                    sb.append(Application.areaMap.get(areaId));
+                    this.customerAddress = sb.toString() + tmpJO.getString("customerAddress");
+                }
             }
-
-
-            /** 确认订单并提交订单 */
-            Map<String, Object> params = new HashMap<>();
-            JSONObject confirmJO = new JSONObject();
-            confirmJO.put("skuId", goodInfoId);
-            confirmJO.put("num", goodCount);
-            List<JSONObject> tr = new ArrayList<>();
-            tr.add(confirmJO);
-            params.put("tradeItems", tr);
-            if (marketingLevelId != -1 && marketingId != -1) {
-                List<JSONObject> tmp = new ArrayList<>();
-                JSONObject tmpJO = new JSONObject();
-                tmpJO.put("marketingId", marketingId);
-                tmpJO.put("skuIds", new ArrayList<String>() {{
-                    this.add(goodInfoId);
-                }});
-                tmpJO.put("marketingLevelId", marketingLevelId);
-                tmpJO.put("giftSkuIds", new ArrayList<>());
-                tmp.add(tmpJO);
-                params.put("tradeMarketingList", tmp);
-            } else {
-                params.put("tradeMarketingList", new ArrayList<>());
-            }
-            params.put("forceConfirm", false);
-            params.put("tradePrice", 0);
-            params.put("returnGoodsFlag", 0);
-
-            System.out.println(HttpRequestUtils.doHttp(Constant.URLS.CONFIRM.URL, header, new JSONObject(params), Constant.URLS.CONFIRM.method, true));
-
-            params.clear();
-
-            params.put("consigneeId", customerId);
-            params.put("provinceName", this.provinceName);
-            params.put("cityName", this.cityName);
-            params.put("areaName", this.areaName);
-            params.put("consigneeAddress", this.customerAddress);
-
-
-            params.put("consigneeUpdateTime", null);
-            JSONArray ja = new JSONArray();
-            JSONObject jo = new JSONObject();
-            jo.put("storeId", "123456861");
-            jo.put("payType", 0);
-            jo.put("invoiceType", -1);
-            jo.put("generalInvoice", new JSONObject());
-            jo.put("specialInvoice", new JSONObject());
-            jo.put("specialInvoiceAddress", false);
-            jo.put("invoiceAddressId", customerId);
-            jo.put("invoiceAddressDetail", this.customerAddress);
-
-            jo.put("invoiceAddressUpdateTime", null);
-            jo.put("invoiceProjectId", "");
-            jo.put("invoiceProjectName", "");
-            jo.put("invoiceProjectUpdateTime", null);
-            jo.put("buyerRemark", "");
-            jo.put("encloses", "");
-            jo.put("deliverWay", "1");
-            ja.add(jo);
-            params.put("storeCommitInfoList", ja);
-            params.put("commonCodeId", null);
-            params.put("orderSource", "LITTLEPROGRAM");
-            params.put("forceCommit", false);
-            params.put("shareUserId", null);
-            params.put("flightNumber", "CA216");
-            DateTimeFormatter df = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-            Calendar calendar = Calendar.getInstance();
-            calendar.set(Calendar.DAY_OF_YEAR, calendar.get(Calendar.DAY_OF_YEAR) + 3);
-            LocalDateTime localDateTime = calendar.getTime().toInstant().atZone(ZoneId.of("Asia/Shanghai")).toLocalDateTime();
-            params.put("arriveTime", localDateTime.format(df));
-            params.put("seatNumber", "33A");
-            params.put("certificateType", 0);
-            params.put("passport", passport);
-            params.put("hongkongAndMacaoPass", "");
-            params.put("taiwanPass", "");
-            params.put("taiwanPassName", "");
-            JSONObject res = HttpRequestUtils.doHttp(Constant.URLS.COMMIT.URL, header, new JSONObject(params), Constant.URLS.COMMIT.method, true);
-
-            if (null == res || !Constant.RequestStatus.SUCCESS.equals(res.getString("code"))) {
-                continue;
-            }
+        } else {
+            System.out.println("获取收货地址失败");
         }
     }
 
+    /** 获取登录信息 */
     private void getToken(){
         String username = EnAndDe.baseEn(this.username);
         String password = EnAndDe.baseEn(this.password);
@@ -248,21 +322,6 @@ public class SwipeThread implements Runnable{
             getToken();
         } else if (Constant.RequestStatus.SUCCESS.equals(resJO.getString("code"))) {
             header.put("Authorization", "Bearer " + resJO.getJSONObject("context").getString("token"));
-
-            JSONObject tmpJO = resJO.getJSONObject("context").getJSONObject("customerDetail");
-            this.customerId = tmpJO.getString("customerId");
-            this.provinceId = tmpJO.getInteger("provinceId");
-            this.cityId = tmpJO.getInteger("cityId");
-            this.areaId = tmpJO.getInteger("areaId");
-            this.provinceName = Application.areaMap.get(provinceId);
-            this.cityName = Application.areaMap.get(cityId);
-            this.areaName = Application.areaMap.get(areaId);
-            StringBuffer sb = new StringBuffer(provinceName);
-            if (!cityId.equals(provinceId)) {
-                sb.append(cityName);
-            }
-            sb.append(Application.areaMap.get(areaId));
-            this.customerAddress = sb.toString() + tmpJO.getString("customerAddress");
         }
     }
 }

@@ -25,6 +25,8 @@ public interface Constant {
         public static final String NOLOGIN = "K-000015";
         public static final String NOEXIT = "K-030001";
 
+        public static final String OVER_SHOPPINGCAR = "K-050215";
+
     }
 
     public enum  URLS {
@@ -33,7 +35,8 @@ public interface Constant {
         CONFIRM(Method.PUT, "https://mbff.yuegowu.com/trade/confirm"),
         COMMIT(Method.POST, "https://mbff.yuegowu.com/trade/commit"),
         SPU(Method.GET, "https://mbff.yuegowu.com/goods/spu/%s"),
-        PURCHASES(Method.POST, "https://mbff.yuegowu.com/site/purchases");
+        PURCHASES(Method.POST, "https://mbff.yuegowu.com/site/purchases"),
+        ADDRESS(Method.GET, "https://mbff.yuegowu.com/customer/addressList");
 
         public Method method;
         public String URL;

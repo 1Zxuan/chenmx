@@ -26,7 +26,7 @@ import java.util.concurrent.Executors;
 @SpringBootApplication
 public class Application {
 
-    private static String goodsInfoId = "2c9194587219d0ae017219dc909c03e0";
+    private static String goodsInfoId = "2c91c7f47407d82f01740b96633c03e3";
     static ExecutorService executorService = Executors.newCachedThreadPool();
     public static Map<Integer, String> areaMap = new HashMap<>();
     static {

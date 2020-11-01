@@ -73,27 +73,35 @@ public class HttpRequestUtils {
             url = url + "?reqId=" + UUID.randomUUID().toString();
         }
         HttpRequest post = HttpUtil.createRequest(method, url);
-        post.setHttpProxy("192.168.3.203", 8888);
+        post.setHttpProxy("127.0.0.1", 8889);
         post.header("Content-Type", "application/json");
         post.header("Accept", "*/*");
-        post.header("distribute-channel", "{\"channelType\":1,\"inviteeId\":null}");
+        JSONObject disChannel = new JSONObject();
+        disChannel.put("channelType", 1);
+        disChannel.put("inviteeId", null);
+
+        post.header("distribute-channel", JSON.toJSONString(disChannel, SerializerFeature.WRITE_MAP_NULL_FEATURES, SerializerFeature.QuoteFieldNames));
+        post.header("Accept-Encoding", "br, gzip, deflate");
         post.header("Origin", "https://m.yuegowu.com");
-        post.header("User-Agent", "Mozilla/5.0 (iPhone; CPU iPhone OS 12_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 MicroMessenger/7.0.15(0x17000f31) NetType/WIFI Language/zh_CN miniProgram");
-        post.header("Pragma", "no-cache");
-        post.header("Cache-Control", "no-cache");
+//        post.header("User-Agent", "Mozilla/5.0 (iPhone; CPU iPhone OS 12_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 MicroMessenger/7.0.15(0x17000f31) NetType/WIFI Language/zh_CN miniProgram");
+//        post.header("Pragma", "no-cache");
+//        post.header("Cache-Control", "no-cache");
+        post.header("User-Agent", "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/53.0.2785.143 Safari/537.36 MicroMessenger/7.0.9.501 NetType/WIFI MiniProgramEnv/Windows WindowsWechat");
         post.header("Accept-Language", "zh-cn");
         post.header("Connection", "keep-alive");
         post.setConnectionTimeout(5000);
         post.setReadTimeout(5000);
         post.setSSLProtocol(SSLSocketFactoryBuilder.TLSv12);
-        post.cookie("acw_tc=2760826016039400277627105e72c11c71d53753add034de92110e834f5303");
+//        post.cookie("acw_tc=2760825d16041177839483495e75bef26ae21b1b156adbead4b09bb25360af");
+        post.disableCookie();
+        post.disableCache();
         try {
             if (null != jo && jo.size() > 0) {
                 post.body(JSON.toJSONString(jo, SerializerFeature.WRITE_MAP_NULL_FEATURES, SerializerFeature.QuoteFieldNames).getBytes("UTF-8"));
 //                System.out.println(JSON.toJSONString(jo, SerializerFeature.WRITE_MAP_NULL_FEATURES, SerializerFeature.QuoteFieldNames));
             }
             if (null != header && header.size() > 0) {
-                header.forEach((k, v) -> post.header(k, v));
+                header.forEach(post::header);
             }
             HttpResponse httpResponse = post.execute();
             String res = httpResponse.body();

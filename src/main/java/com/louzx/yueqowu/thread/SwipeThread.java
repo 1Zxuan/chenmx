@@ -12,7 +12,6 @@ import com.louzx.yueqowu.utils.HttpRequestUtils;
 import lombok.Setter;
 import org.apache.commons.lang3.StringUtils;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
@@ -140,6 +139,7 @@ public class SwipeThread implements Runnable{
         params.put("hongkongAndMacaoPass", "");
         params.put("taiwanPass", "");
         params.put("taiwanPassName", "");
+        header.put("Referer", "https://m.yuegowu.com/order-confirm");
         JSONObject res = HttpRequestUtils.doHttp(Constant.URLS.COMMIT.URL, header, new JSONObject(params), Constant.URLS.COMMIT.method, true);
         System.out.println(res);
     }
@@ -329,7 +329,9 @@ public class SwipeThread implements Runnable{
         JSONObject bodyJO = new JSONObject();
         bodyJO.put("customerAccount", username);
         bodyJO.put("customerPassword", password);
-        JSONObject resJO = HttpRequestUtils.doHttp(Constant.URLS.LOGIN.URL, null, bodyJO, Constant.URLS.LOGIN.method, true);
+        header.put("Authorization", "Bearer");
+        header.put("Referer", "https://m.yuegowu.com/user-center?code=081sD0100KPZyK169S300E0emv4sD01b&state=b2bOpenId");
+        JSONObject resJO = HttpRequestUtils.doHttp(Constant.URLS.LOGIN.URL, header, bodyJO, Constant.URLS.LOGIN.method, true);
         if (null == resJO) {
             System.out.println("登录失败...");
             try {
@@ -338,6 +340,7 @@ public class SwipeThread implements Runnable{
             getToken();
         } else if (Constant.RequestStatus.SUCCESS.equals(resJO.getString("code"))) {
             header.put("Authorization", "Bearer " + resJO.getJSONObject("context").getString("token"));
+            header.put("Referer", "https://m.yuegowu.com/");
             JSONObject confirmLogin = HttpRequestUtils.doHttp(Constant.URLS.LOGINCONFIRM.URL, header, null, Constant.URLS.LOGINCONFIRM.method, true);
             if (null != confirmLogin && Constant.RequestStatus.SUCCESS.equals(confirmLogin.getString("code"))) {
                 header.put("Authorization", "Bearer " + confirmLogin.getString("context"));

@@ -46,12 +46,12 @@ public class Application {
 
     public static void main(String[] args) throws InterruptedException, IOException {
         SwipeThread louzx = new SwipeThread();
-//        louzx.setGoodInfoId("2c91c7f47407d82f01740b96633c03e3");
-        louzx.setGoodInfoId("2c9194597219d0ad017219dc891f0018");
-        louzx.setUsername("13958403168");
+        louzx.setGoodInfoId("2c9194587219d0ae017219dc927a055f");
+        louzx.setUsername("13735754668");
         louzx.setPassport("E66204255");
-        louzx.setPassword("lzx1998");
-        louzx.setGoodCount(2);
+        louzx.setPassword("123456");
+        louzx.setIntervals(2000L);
+        louzx.setGoodCount(3);
         executorService.execute(louzx);
         executorService.shutdown();
     }

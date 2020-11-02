@@ -89,11 +89,11 @@ public class SwipeThread implements Runnable{
             return;
         }
         spu();
-//        while (true) {
+        while (true) {
             pruchase();
             confirm();
             commit();
-//        }
+        }
     }
 
     private void commit() {
@@ -132,7 +132,7 @@ public class SwipeThread implements Runnable{
         Calendar calendar = Calendar.getInstance();
         calendar.set(Calendar.DAY_OF_YEAR, calendar.get(Calendar.DAY_OF_YEAR) + 1);
         LocalDateTime localDateTime = calendar.getTime().toInstant().atZone(ZoneId.of("Asia/Shanghai")).toLocalDateTime();
-        params.put("arriveTime", localDateTime.format(df));
+        params.put("arriveTime", "2020-11-02 12:30:00");
         params.put("seatNumber", "33A");
         params.put("certificateType", 0);
         params.put("passport", passport);
@@ -216,9 +216,9 @@ public class SwipeThread implements Runnable{
                 JSONArray goodsInfos = purchasesJO.getJSONObject("context").getJSONObject("goodsMarketingMap").getJSONArray(this.goodInfoId);
                 if (null != goodsInfos && goodsInfos.size() > 0) {
                     JSONArray tmp = goodsInfos.getJSONObject(0).getJSONArray("fullDiscountLevelList");
-                    for (int i = 0; i < tmp.size(); i++) {
+                    for (int i = tmp.size() - 1; i >= 0; i--) {
                         Integer fullCount = tmp.getJSONObject(i).getInteger("fullCount");
-                        if (goodCount.equals(fullCount)) {
+                        if (goodCount >= fullCount) {
                             marketingLevelId = tmp.getJSONObject(i).getInteger("discountLevelId");
                             marketingId = tmp.getJSONObject(i).getInteger("marketingId");
                             break;
@@ -316,8 +316,12 @@ public class SwipeThread implements Runnable{
                     sb.append(Application.areaMap.get(areaId));
                     this.customerAddress = sb.toString() + tmpJO.getString("customerAddress");
                 }
+            } else {
+                this.customerAddress = null;
+                System.out.println("获取收货地址失败");
             }
         } else {
+            this.customerAddress = null;
             System.out.println("获取收货地址失败");
         }
     }
